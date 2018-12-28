@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/styles/styles.css" media="screen" title="no title" charset="utf-8">
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans:300" rel="stylesheet">
+
+  <title>Food Truck Sniffer</title>
+<style>
+  /* Use this to modify the scroll bar */
+::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            box-shadow: inset 0 0 5px grey;
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #6d457a;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4c3054;
+        }</style>
+</head>
+
+<body>
+<div class="container-fluid">
+  <div class="row row-height-header">
+    Banner for our logo and Name
+  </div>
+    <div class="row row-height">
+  <div class="col-lg-3 m-0 p-0" id="scrolly" style="display: none;">
+        <div id="output"></div>
+      </div>
+      <div class="col-lg p-0">
+        <div id="map-canvas"></div>
+      </div>
+      <!-- <div id="log"></div> -->
+    </div>
+  </div>
+  <!-- If we want a event window above the marker-->
+  <script id="location-template" type="text/x-handlebars-template">
+    <div class="location-entry">
+      <h2>{{name}}</h2>
+      <div class="body">
+        {{description}}
+      </div>
+    </div>
+  </script>
+  <!--Left Bar-->
+  <script id="services-template" type="text/x-handlebars-template">
+          <div class="container-fluid">
+            <div class="row">
+              <div class="service-entry">
+                <div class='imgwrap p-0' >
+                  <img src="{{image}}" style="width: 100%" />
+                </div>
+              </div>
+          </div>
+        <!-- Title Section -->
+          <div class="row ">
+            <div class="titleBox text-center">
+              <h3>{{name}}</h3>
+              <!--Icons are being difficult...-->
+              <div id="nav">
+                  <a href="tel:{{phone}}">
+                    <img src="imgs/Phone.png" class="icon">
+                  </a>
+                  <a target="_blank" href="http://maps.google.com/?q={{address}}"">
+                    <img src="imgs/Directions.png" class="icon">
+                  </a>
+                  <a href={{url}} target="_blank">
+                    <img src="imgs/Internet.png" class="icon">
+                  </a>
+              </div>
+            <div class="body">
+              {{description}}
+            </div>
+          </div>
+        </div>
+      <!-- Contact Section -->
+        <!-- <div class="row">
+          <div class="list-group text-center col-12 pr-0">
+            <a class="list-group-item list-group-item-action ">
+              Phone Number: {{phone}}
+            </a>
+            <a href={{url}} target="_blank" class="list-group-item list-group-item-action">
+              Website: {{url}}
+            </a>
+        </div>
+      </div> -->
+      <!-- Yelp Section -->
+      <div class="row">
+          <div class="service-entry">
+            <div class='p-0'id="yelpScrolly" >
+                {{#each YelpReviews}}
+                <li class="list-group-item">
+                    <img style="height:50px;" src="{{userImage}}"/> <div>Rating: {{rating}}</div>
+                    <div style="font-size: small; color:blue; font-weight:bold">{{username}}</div>
+                    <div style="font-size: xx-small">{{content}}</div>
+                    <a href="{{contentUrl}}">Full Review</a>
+                </li>
+                {{/each}}
+            </div>
+          </div>
+        </div>
+      <!-- Twitter Section -->
+      <div class="row">
+          <div class='p-0' id="twitterScrolly">
+              <a class="twitter-timeline" data-tweet-limit="2" data-height="300" href="https://twitter.com/{{twitterId}}"></a>
+              <script async src="//platform.twitter.com/widgets.js"></script>
+
+          </div>
+      </div>
+      
+    </div>
+  </div>
+  </script>
+  
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/3.0.0/handlebars.min.js"></script>
+
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA6pItobxq0v_r7pWG5w_R36jtaVw8h520"></script>
+  
+  <script src='js/malvzg.js'></script>
+  <script src='js/wknbdz.js'></script>
+  
+  
+  <script>
+    var truckOBJs = [];
+    let servicesOBJ = {};
+    let dataPointsLocationOBJ = {};
+    let dataPointsServicesOBJ = {};
+    let servicesID;
+   
+    // \/\/\/ Used for labeling the markers on map \/\/\/ 
+    var labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789';
+    var labelIndex = 0;
+  
+    var gmarkers = [];
+    var infowindow = new google.maps.InfoWindow();
+  
+    var locationSource = $("#location-template").html();
+    var locTemplate = Handlebars.compile(locationSource);
+    console.log("Location Source: ",locationSource)
+  
+    var serviceSource = $("#services-template").html();
+    var serviceTemplate = Handlebars.compile(serviceSource);
+  
+    function initialize() {
+      var center = new google.maps.LatLng(33.4483771, -112.07403729999999);
+      var mapOptions = {
+        zoom: 12,
+        center: { lat: 35.22, lng: -80.84 },
+        mapTypeId: google.maps.MapTypeId.ROADMAP,
+        styles: mapStyle
+      };
+  
+      map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+      var geocoder = new google.maps.Geocoder();
+      //populates truckOBJs array with addresses from the database.
+      $.ajax("/api/trucks/", {
+        type: "GET",
+      }).then(
+        function (response) {
+          for (let i = 0; i < response.length; i++) {
+            let newOBJ = response[i];
+            console.log("Object being added to truckOBJs: ", newOBJ);
+            truckOBJs.push(newOBJ);
+          }
+          geocodeAddress(geocoder, map);
+        }
+      );
+      
+    }
+    function geocodeAddress(geocoder, resultsMap) {
+      for (let i = 0; i < truckOBJs.length; i++) {
+        geocoder.geocode({ 'address': truckOBJs[i].address }, function (results, status) {
+          resultsMap.setZoom(13);
+          longitude = results[0].geometry.viewport.getCenter().lng();
+          //console.log(longitude);
+  
+          latitude = results[0].geometry.viewport.getCenter().lat();
+          var latLong = "" + latitude + " , " + longitude + "";
+          servicesID = truckOBJs[i].id;
+          servicesOBJ = truckOBJs[i];
+  
+          locationData = { name: truckOBJs[i].name}
+          dataPointsLocationOBJ = {
+            ID: servicesID,
+            type: "Main",
+            latLong: latLong,
+            truckOBJ: truckOBJs[i],
+            taxonomy: {
+          locations: [
+            '123-432-234',
+            '4324-234324-2432'
+          ],
+          services: [
+          servicesID,
+            // '222-222-222'
+          ]
+        }
+          };
+          dataPointsServicesOBJ = {
+            latLong: latLong,
+            taxonomy: truckOBJs[i].id
+          };
+  
+          mapData.key.serviceData.services[servicesID] = servicesOBJ;
+          mapData.key.locationData.locations[servicesID] = locationData;
+          mapData.dataPoints.services[servicesID] = dataPointsServicesOBJ;
+          mapData.dataPoints.locations.push(dataPointsLocationOBJ);
+          console.log("MAP DATA OBJ: ", mapData);
+          
+  
+  
+  
+          if (status === 'OK') {
+            resultsMap.setCenter(results[0].geometry.location);
+          }
+            // var marker = new google.maps.Marker({
+            // map: resultsMap,
+            //  zoom: 10,
+            // position: results[0].geometry.location,
+            //  label: labels[labelIndex++ % labels.length],
+            //  animation: google.maps.Animation.DROP,
+            //  customInfo: "Marker " + v,
+  
+            // });
+            for (i = 0; i < mapData.dataPoints.locations.length; i++) {
+              addMarker(mapData.dataPoints.locations[i]);
+            };
+        })
+      }
+    };
+  
+    function addMarker(marker) {
+      var location = getLocation(marker);
+      if (location) {
+        var category = marker.type
+        var title = location.name;
+        var latLong = marker.latLong.split(',');
+        var pos = new google.maps.LatLng(latLong[0], latLong[1]);
+        var content = getLocationContent(location);
+  
+        $.extend(location, marker)
+  
+        mapMarker = new google.maps.Marker({
+          title: title,
+          position: pos,
+          category: category,
+          locationData: location,
+          map: map
+        });
+  
+        gmarkers.push(mapMarker);
+  
+        // Marker click listener
+        google.maps.event.addListener(mapMarker, 'click', (function (mapMarker, content) {
+          return function () {
+            console.log("You clicked me: ",mapMarker.locationData.truckOBJ.twitterId, "=================");
+           // infowindow.setContent(content);
+           // infowindow.open(map, mapMarker);
+            //map.panTo(this.getPosition());
+            generateRelated(mapMarker);
+            $('#scrolly').removeAttr('style');
+            
+          }
+        })(mapMarker, content));
+      }
+    }
+  
+    function getLocation(marker) {
+      var location = false;
+      if (mapData.key.locationData.locations[marker.ID]) {
+        location = mapData.key.locationData.locations[marker.ID];
+      }
+      return location;
+    }
+  
+    function getLocationContent(location) {
+      console.log("get location content: ", location)
+      return locTemplate(location);
+    }
+  
+    function generateRelated(marker) {
+      $('#output').text('');
+      $('#output').html(generateServices(marker));
+    }
+  
+    function generateServices(location) {
+  console.log("generateServices: ",location)
+      var serviceCards=[];
+    
+    for(var x in location.locationData.taxonomy.services){
+        var serviceID = location.locationData.taxonomy.services[x];
+          serviceCards.push(serviceTemplate(mapData.key.serviceData.services[serviceID]));
+      console.log("sent this to template",mapData.key.serviceData.services[serviceID]);
+
+        }
+    return serviceCards.join('')
+    }
+
+    function twitterEmbed (truckTwitterName) {
+      var tweetDiv = $("#twitterDisplay");
+      var embedElement = `<a class="twitter-timeline" data-tweet-limit="2" data-height="300" href="https://twitter.com/${truckTwitterName}"></a>`
+      $("#twitterDisplay").append(embedElement);
+      };
+
+    initialize();
+  </script>
+</body>
+
+</html>

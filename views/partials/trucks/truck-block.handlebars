@@ -1,0 +1,28 @@
+{{!-- <li>
+	{{name}}
+
+	<button class="change-sleep" data-id="{{id}}" data-newsleep="{{sleep}}">
+		{{#if sleep}}SLEEP TIME!{{else}}WAKE UP!{{/if}}
+	</button>
+
+	<button class="delete-cat" data-id="{{this.id}}">DELETE!</button>
+</li> --}}
+<li data-id="truckid {{id}}" class="list-group-item">
+          <div style="font-size: medium; color:green; font-weight:bold">{{name}}</div>
+		  <img style="height:50px;" src="{{image}}" /><br>
+          Twitter: {{twitterId}}<br>
+		  Price:   {{priceRating}}<br>
+		  Address: {{address}}<br>
+		  Rating:  {{overallRating}}<br>
+		  Phone:   {{phone}}<br>
+		  Website: {{url}}<br>
+		  <h3>Reviews</h3>
+{{#each YelpReviews}}
+<li class="list-group-item">
+	<img style="height:50px;" src="{{userImage}}"/> <div>Rating: {{rating}}</div>
+	<div style="font-size: small; color:blue; font-weight:bold">{{username}}</div>
+	<div style="font-size: xx-small">{{content}}</div>
+	<a href="{{contentUrl}}">Full Review</a>
+</li>
+{{/each}}
+</li>

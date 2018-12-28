@@ -1,0 +1,429 @@
+<div class="container-fluid">
+  <div class="row row-height">
+    <div class="col-lg-3 m-0 p-0" id="scrolly">
+      <div id="output"></div>
+    </div>
+    <div class="col-lg-9 p-0">
+      <div id="map-canvas"></div>
+    </div>
+    <!-- <div id="log"></div> -->
+  </div>
+</div>
+<!-- If we want a event window above the marker-->
+<script id="location-template" type="text/x-handlebars-template">
+  <div class="location-entry">
+    <h2>{{name}}</h2>
+    <div class="body">
+      {{description}}
+    </div>
+  </div>
+</script>
+<!--Left Bar-->
+<script id="services-template" type="text/x-handlebars-template">
+        <div class="container-fluid">
+          <div class="row">
+            <div class="service-entry">
+              <div class='imgwrap p-0' >
+                <img src="{{serviceImage}}" style="width: 100%" />
+              </div>
+            </div>
+        </div>
+      <!-- Title Section -->
+        <div class="row ">
+          <div class="titleBox text-center">
+            <h3>{{name}}</h3>
+            <!--Icons are being difficult...-->
+            <!-- <ul class="icon text-center">
+              <li>
+                <a href="tel:{{phone}}">
+                  <img src="imgs/Phone.png" class="icon">
+                </a>
+              </li>
+              <li>
+                <a href={{directions}}>
+                  <img src="imgs/Directions.png" class="icon">
+                </a>
+              </li>
+              <li>
+                <a href={{website}} target="_blank">
+                  <img src="imgs/Internet.png" class="icon">
+                </a>
+              </li>
+            </ul> -->
+          <div class="body">
+            {{description}}
+          </div>
+        </div>
+      </div>
+    <!-- Contact Section -->
+      <div class="row">
+        <div class="list-group text-center col-12 pr-0">
+          <a href=tel:{{phone}} class="list-group-item list-group-item-action ">
+            Phone Number: {{phone}}
+          </a>
+          <a href={{website}} target="_blank" class="list-group-item list-group-item-action">
+            Website: {{website}}
+          </a>
+      </div>
+    </div>
+    <!-- Twitter Section -->
+    <div class="row">
+      <div class="service-entry">
+        <div class='imgwrap p-0' >
+          <img src="{{tweet}}" style="width: 100%" />
+        </div>
+      </div>
+    </div>
+    <!-- Yelp Section -->
+    <div class="row">
+        <div class="service-entry">
+          <div class='imgwrap p-0' >
+            <img src="{{yelp}}" style="width: 100%" />
+          </div>
+        </div>
+      </div>
+  </div>
+</div>
+</script>
+
+
+<script async src="//platform.twitter.com/widgets.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<<<<<<< HEAD
+=======
+
+>>>>>>> 751103de9941a9dce923e62c5203014956f2ae67
+<script src='http://cdnjs.cloudflare.com/ajax/libs/handlebars.js/3.0.0/handlebars.min.js'></script>
+{{!--
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA6pItobxq0v_r7pWG5w_R36jtaVw8h520&callback=initMap"></script>
+--}}
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA6pItobxq0v_r7pWG5w_R36jtaVw8h520"></script>
+
+<script src='js/malvzg.js'></script>
+<script src='js/wknbdz.js'></script>
+{{!--
+<script src="js/mapMarker.js"></script> --}}
+<<<<<<< HEAD
+=======
+
+>>>>>>> 751103de9941a9dce923e62c5203014956f2ae67
+
+<script>
+  var truckOBJs = [];
+  let servicesOBJ = {};
+  let dataPointsLocationOBJ = {};
+  let dataPointsServicesOBJ = {};
+  let servicesID;
+ 
+  // \/\/\/ Used for labeling the markers on map \/\/\/ 
+  var labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789';
+  var labelIndex = 0;
+
+  var gmarkers = [];
+  var infowindow = new google.maps.InfoWindow();
+
+  var locationSource = $("#location-template").html();
+  var locTemplate = Handlebars.compile(locationSource);
+  console.log("Location Source: ",locationSource)
+
+  var serviceSource = $("#services-template").html();
+  var serviceTemplate = Handlebars.compile(serviceSource);
+
+  function initialize() {
+    var center = new google.maps.LatLng(33.4483771, -112.07403729999999);
+    var mapOptions = {
+      zoom: 12,
+      center: { lat: 35.22, lng: -80.84 },
+      mapTypeId: google.maps.MapTypeId.ROADMAP,
+      styles: mapStyle
+    };
+
+    map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+    var geocoder = new google.maps.Geocoder();
+    //populates truckOBJs array with addresses from the database.
+    $.ajax("/api/trucks/", {
+      type: "GET",
+    }).then(
+      function (response) {
+        for (let i = 0; i < response.length; i++) {
+          let newOBJ = response[i];
+          console.log("Object being added to truckOBJs: ", newOBJ);
+          truckOBJs.push(newOBJ);
+        }
+        geocodeAddress(geocoder, map);
+      }
+    );
+    //for (i = 0; i < mapData.dataPoints.locations.length; i++) {
+    //  addMarker(mapData.dataPoints.locations[i]);
+    //}
+  }
+  function geocodeAddress(geocoder, resultsMap) {
+    for (let i = 0; i < truckOBJs.length; i++) {
+      geocoder.geocode({ 'address': truckOBJs[i].address }, function (results, status) {
+        resultsMap.setZoom(10);
+        //console.log("truckOBJs[0] inside callback", truckOBJs[i])
+        //console.log(results);
+        //console.log(" results[0].geometry", results[0].geometry);
+        longitude = results[0].geometry.viewport.getCenter().lng();
+        //console.log(longitude);
+
+        latitude = results[0].geometry.viewport.getCenter().lat();
+        //console.log(latitude);
+        var latLong = "" + latitude + " , " + longitude + "";
+        //console.log("latLong: ", latLong);
+        //console.log()
+        servicesID = truckOBJs[i].id;
+        servicesOBJ = truckOBJs[i];
+
+        locationData = { name: truckOBJs[i].name}
+        dataPointsLocationOBJ = {
+          ID: servicesID,
+          type: "Main",
+          latLong: latLong,
+          taxonomy: {
+            locations: truckOBJs[i].name,
+            services: servicesID
+          }
+        };
+        dataPointsServicesOBJ = {
+          latLong: latLong,
+          taxonomy: truckOBJs[i].id
+        };
+
+        mapData.key.serviceData.services[servicesID] = servicesOBJ;
+        mapData.key.locationData.locations[servicesID] = locationData;
+        mapData.dataPoints.services[servicesID] = dataPointsServicesOBJ;
+        mapData.dataPoints.locations.push(dataPointsLocationOBJ);
+        console.log("MAP DATA OBJ: ", mapData);
+        // dataPointsServicesOBJ = {  };
+
+
+
+        if (status === 'OK') {
+          resultsMap.setCenter(results[0].geometry.location);
+        }
+          // var marker = new google.maps.Marker({
+          // map: resultsMap,
+          //  zoom: 10,
+          // position: results[0].geometry.location,
+          //  label: labels[labelIndex++ % labels.length],
+          //  animation: google.maps.Animation.DROP,
+          //  customInfo: "Marker " + v,
+
+          // });
+          for (i = 0; i < mapData.dataPoints.locations.length; i++) {
+            addMarker(mapData.dataPoints.locations[i]);
+          };
+      })
+    }
+  };
+
+  function addMarker(marker) {
+    console.log("Marker: ",marker)
+    var location = getLocation(marker);
+    console.log("location: ",location)
+    if (location) {
+      var category = marker.type
+      var title = location.name;
+      var latLong = marker.latLong.split(',');
+      //console.log("latLong", latLong);
+      var pos = new google.maps.LatLng(latLong[0], latLong[1]);
+      var content = getLocationContent(location);
+
+      $.extend(location, marker)
+
+      mapMarker = new google.maps.Marker({
+        title: title,
+        position: pos,
+        category: category,
+        locationData: location,
+        map: map
+      });
+
+      gmarkers.push(mapMarker);
+
+      // Marker click listener
+      google.maps.event.addListener(mapMarker, 'click', (function (mapMarker, content) {
+        return function () {
+          //console.log("mapMarker",mapMarker)
+          //console.log("content",content)
+          //console.log("infowindow",infowindow)
+
+          infowindow.setContent(content);
+          infowindow.open(map, mapMarker);
+          //map.panTo(this.getPosition());
+          generateRelated(mapMarker);
+          //console.log("after generate related mapMarker",mapMarker)
+
+        }
+      })(mapMarker, content));
+    }
+  }
+
+  function getLocation(marker) {
+    var location = false;
+    if (mapData.key.locationData.locations[marker.ID]) {
+      location = mapData.key.locationData.locations[marker.ID];
+    }
+    return location;
+  }
+
+  function getLocationContent(location) {
+    console.log("get location content: ", location)
+    return locTemplate(location);
+  }
+
+  function generateRelated(marker) {
+    $('#output').text('');
+    $('#output').html(generateServices(marker));
+  }
+
+  function generateServices(location) {
+console.log("generateServices: ",location)
+    var serviceCards=[];
+  
+  for(var x in location.locationData.taxonomy.services){
+      var serviceID = location.locationData.taxonomy.services[x];
+        serviceCards.push(serviceTemplate(mapData.key.serviceData.services[serviceID]));
+      }
+  return serviceCards.join('')
+  }
+  initialize();
+</script>
+{{!--<script>
+  var truckOBJs = [];
+  // \/\/\/ Used for labeling the markers on map \/\/\/ 
+  var labels = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ123456789';
+  var labelIndex = 0;
+
+  function initMap() {
+    var map = new google.maps.Map(document.getElementById('map'), {
+      zoom: 10,
+      center: { lat: 35.22, lng: -80.84 }
+    });
+    var geocoder = new google.maps.Geocoder();
+    //populates truckOBJs array with addresses from the database.
+    $.ajax("/api/trucks/", {
+      type: "GET",
+    }).then(
+      function (response) {
+        for (let i = 0; i < response.length; i++) {
+          let newOBJ = response[i];
+          console.log("Object being added to truckOBJs: ", newOBJ);
+          truckOBJs.push(newOBJ);
+        }
+        geocodeAddress(geocoder, map);
+      }
+    );
+
+
+
+
+    <script>
+      function geocodeAddress(geocoder, resultsMap) {
+        console.log("truckOBJs ", truckOBJs[i]);
+      console.log("truckOBJs ", truckOBJs[1]);
+  
+  
+      let v = 1;
+    for (let i = 0; i < truckOBJs.length; i++) {
+        geocoder.geocode({ 'address': truckOBJs[i].address }, function (results, status) {
+          resultsMap.setZoom(10);
+          console.log(results);
+          console.log(results[0].geometry.bounds);
+          longitude = (results[0].geometry.viewport.b.b);
+          console.log(longitude);
+
+          latitude = (results[0].geometry.viewport.f.f);
+          console.log(latitude);
+
+
+          if (status === 'OK') {
+            resultsMap.setCenter(results[0].geometry.location);
+
+
+          var image = {
+            url: "https://image.flaticon.com/icons/png/128/45/45904.png",
+            size: new google.maps.Size(128, 128),
+            origin: new google.maps.Point(0, 0),
+            anchor: new google.maps.Point(0, 32)
+          };
+          var shape = {
+            coords: [1, 1, 1, 20, 18, 20, 18, 1],
+            type: 'poly'
+          };
+
+            var contentString = '<div id="content">'+
+            '<div id="siteNotice">'+
+            '</div>'+
+            '<h1 id="firstHeading" class="firstHeading">Uluru</h1>'+
+            '<div id="bodyContent">'+
+            '<p><b>Uluru</b>, also referred to as <b>Ayers Rock</b>, is a large ' +
+            'sandstone rock formation in the southern part of the '+
+            'Northern Territory, central Australia. It lies 335&#160;km (208&#160;mi) '+
+            'south west of the nearest large town, Alice Springs; 450&#160;km '+
+            '(280&#160;mi) by road. Kata Tjuta and Uluru are the two major '+
+            'features of the Uluru - Kata Tjuta National Park. Uluru is '+
+            'sacred to the Pitjantjatjara and Yankunytjatjara, the '+
+            'Aboriginal people of the area. It has many springs, waterholes, '+
+            'rock caves and ancient paintings. Uluru is listed as a World '+
+            'Heritage Site.</p>'+
+            '<p>Attribution: Uluru, <a href="https://en.wikipedia.org/w/index.php?title=Uluru&oldid=297882194">'+
+            'https://en.wikipedia.org/w/index.php?title=Uluru</a> '+
+            '(last visited June 22, 2009).</p>'+
+            '</div>'+
+            '</div>';
+
+            var infowindow = new google.maps.InfoWindow({
+              content: contentString,
+              maxWidth: 200
+              
+            });
+
+            var marker = new google.maps.Marker({
+              map: resultsMap,
+              zoom: 13,
+              position: results[0].geometry.location,
+              //label: labels[labelIndex++ % labels.length],
+              icon: image,
+              shape: shape,
+              animation: google.maps.Animation.DROP,
+         //     customInfo: "Marker " + truckOBJs[0].name,
+
+              });
+              marker.addListener('click', function() {
+                console.log("Clicked marker" + truckOBJs[i].twitterId)
+                infowindow.open(map, marker);
+              });
+            v++;
+            //marker.addListener('click', toggleBounce);
+
+
+        }
+
+        //function toggleBounce() {
+          //console.log("Clicked " + this.customInfo)
+          //if (marker.getAnimation() !== null) {
+            //marker.setAnimation(null);
+          //} else {
+            //marker.setAnimation(google.maps.Animation.BOUNCE);
+          //}
+        //}
+
+      });
+    }
+  };
+
+
+        });
+      }
+    };
+  
+  function twitterEmbed (truckTwitterName) {
+    var tweetDiv = document.getElementById("twitterDisplay");
+    var embedElement = `<a class="twitter-timeline" data-tweet-limit="2" data-height="300" href="https://twitter.com/${truckTwitterName}"></a>`
+  
+      tweetDiv.innerHTML(embedElement);
+    };
+  
+</script> --}}

@@ -1,0 +1,62 @@
+<div class="container">
+  <div class="row">
+    <div class="col-8 offset-2">
+      <form id="newBiz">
+        <div class="form-group">
+          <label for="name">Bussiness Name:</label>
+          <input type="name" class="form-control" id="name">
+        </div>
+        <div class="form-group">
+          <label for="twitter">Twitter ID:</label>
+          <input type="twitter" class="form-control" id="twitter">
+        </div>
+        <div class="form-group">
+          <label for="url">Business URL:</label>
+          <input type="url" class="form-control" id="url">
+        </div>
+        <button type="submit" class="btn btn-default">Submit</button>
+      </form>
+    </div>
+  </div>
+</div>
+	<script src="https://code.jquery.com/jquery.js"></script>
+
+<script>
+
+  var nameInput = $("#name");
+  var twitterInput = $("#twitter");
+  var urlInput = $("#url");
+  $('#newBiz').on("submit", handleFormSubmit)
+  
+  function handleFormSubmit(event) {
+    event.preventDefault();
+    console.log("submit clicked")
+    // Wont submit the post if we are missing a body, title, or author
+    if (!nameInput.val().trim() || !twitterInput.val().trim() || !urlInput.val().trim() ) {
+      console.log('failed if statement')
+      return;
+    }
+    // Constructing a newPost object to hand to the database
+    var newBiz = {
+        name: nameInput
+        .val()
+        .trim(),
+        address: "Charlotte,nc",
+        twitterId: twitterInput
+        .val()
+        .trim(),
+        url: urlInput
+        .val()
+        .trim(),
+    }
+    
+    submitPost(newBiz);
+    $('nameInput').val("")
+    $('twitterInput').val("")
+    $('urlInput').val("")
+  }
+  // Submits a new post and brings user to blog page upon completion
+  function submitPost(biz) {
+    $.post("/api/trucks", biz)
+  }
+</script>
